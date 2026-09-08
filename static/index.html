@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semantic Steganography Platform</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <span class="logo-icon">🔒</span>
+                <div>
+                    <h1>Semantic Steganography</h1>
+                    <p class="subtitle">Hide secret messages in cover text using natural synonym substitution & AES encryption</p>
+                </div>
+            </div>
+            <div class="status-badge" id="api-status">
+                <span class="dot online"></span> API Connected
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab('encode-tab')">
+                <span>🛡️</span> Encode & Embed
+            </button>
+            <button class="tab-btn" onclick="switchTab('decode-tab')">
+                <span>🔑</span> Extract & Decode
+            </button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="content-area">
+            <!-- ENCODE TAB -->
+            <section id="encode-tab" class="tab-content active">
+                <div class="grid-2col">
+                    <!-- Left: Inputs -->
+                    <div class="card">
+                        <h2>1. Input Parameters</h2>
+                        
+                        <div class="form-group">
+                            <label for="secret-input">Secret Message</label>
+                            <textarea id="secret-input" placeholder="Type your confidential secret message here..." rows="4"></textarea>
+                            <div class="input-hint" id="secret-hint">0 characters | 0 bits</div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="label-row">
+                                <label for="cover-input">Cover Text (Optional)</label>
+                                <button type="button" class="btn-sm secondary" onclick="handleGenerateCover()">
+                                    ✨ Auto-Generate Cover
+                                </button>
+                            </div>
+                            <textarea id="cover-input" placeholder="Paste an article or paragraph to serve as cover text. If left empty or insufficient, cover text will be auto-generated/expanded..." rows="6"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password-input">AES Encryption Passphrase (Optional)</label>
+                            <input type="password" id="password-input" placeholder="Enter passphrase for AES-128 payload encryption...">
+                        </div>
+
+                        <div class="form-checkbox">
+                            <input type="checkbox" id="auto-expand-check" checked>
+                            <label for="auto-expand-check">Auto-expand cover text if capacity is insufficient</label>
+                        </div>
+
+                        <button type="button" class="btn primary btn-full" id="encode-btn" onclick="handleEncode()">
+                            🚀 Encode & Embed Secret
+                        </button>
+                    </div>
+
+                    <!-- Right: Results -->
+                    <div class="card" id="encode-result-card">
+                        <h2>2. Output & Analytics</h2>
+
+                        <div id="encode-placeholder" class="placeholder-state">
+                            <span class="icon">📄</span>
+                            <p>Enter a secret message and click <strong>Encode</strong> to view stego text and security metrics.</p>
+                        </div>
+
+                        <div id="encode-output" class="hidden">
+                            <!-- Metrics Grid -->
+                            <div class="metrics-grid">
+                                <div class="metric-card">
+                                    <span class="metric-label">BLEU Score</span>
+                                    <span class="metric-value" id="metric-bleu">0.0</span>
+                                </div>
+                                <div class="metric-card">
+                                    <span class="metric-label">Shannon Entropy</span>
+                                    <span class="metric-value" id="metric-entropy">0.0</span>
+                                </div>
+                                <div class="metric-card">
+                                    <span class="metric-label">Capacity Bits</span>
+                                    <span class="metric-value" id="metric-capacity">0</span>
+                                </div>
+                                <div class="metric-card">
+                                    <span class="metric-label">Carrier Words</span>
+                                    <span class="metric-value" id="metric-carriers">0</span>
+                                </div>
+                            </div>
+
+                            <!-- Stego Text Result -->
+                            <div class="form-group">
+                                <div class="label-row">
+                                    <label>Generated Stego Text</label>
+                                    <button class="btn-sm icon-btn" onclick="copyToClipboard('stego-output')">📋 Copy</button>
+                                </div>
+                                <textarea id="stego-output" readonly rows="5"></textarea>
+                            </div>
+
+                            <!-- Key JSON Result -->
+                            <div class="form-group">
+                                <div class="label-row">
+                                    <label>Extraction Key (JSON)</label>
+                                    <button class="btn-sm icon-btn" onclick="copyToClipboard('key-output')">📋 Copy Key</button>
+                                </div>
+                                <textarea id="key-output" class="code-font" readonly rows="4"></textarea>
+                            </div>
+
+                            <!-- Modifications List -->
+                            <div class="form-group">
+                                <label>Carrier Substitutions Log (<span id="mod-count">0</span> words replaced)</label>
+                                <div class="substitutions-box" id="mod-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DECODE TAB -->
+            <section id="decode-tab" class="tab-content">
+                <div class="grid-2col">
+                    <!-- Left: Inputs -->
+                    <div class="card">
+                        <h2>1. Stego Payload & Key</h2>
+
+                        <div class="form-group">
+                            <label for="decode-stego-input">Stego Text</label>
+                            <textarea id="decode-stego-input" placeholder="Paste the stego text containing hidden secret message..." rows="6"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="decode-key-input">Extraction Key JSON</label>
+                            <textarea id="decode-key-input" class="code-font" placeholder='Paste extraction key JSON, e.g. {"used_positions": [...], "secret_bit_len": 128}' rows="5"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="decode-password-input">AES Decryption Passphrase (if encrypted)</label>
+                            <input type="password" id="decode-password-input" placeholder="Enter passphrase used during encoding...">
+                        </div>
+
+                        <button type="button" class="btn primary btn-full" id="decode-btn" onclick="handleDecode()">
+                            🔓 Extract & Decode Secret
+                        </button>
+                    </div>
+
+                    <!-- Right: Decoded Output -->
+                    <div class="card">
+                        <h2>2. Recovered Secret Message</h2>
+
+                        <div id="decode-placeholder" class="placeholder-state">
+                            <span class="icon">🔍</span>
+                            <p>Provide stego text and key JSON, then click <strong>Decode</strong> to recover the secret.</p>
+                        </div>
+
+                        <div id="decode-output" class="hidden">
+                            <div class="success-banner">
+                                🟢 Secret Recovered Successfully!
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="label-row">
+                                    <label>Decoded Secret</label>
+                                    <button class="btn-sm icon-btn" onclick="copyToClipboard('decoded-secret-output')">📋 Copy</button>
+                                </div>
+                                <textarea id="decoded-secret-output" readonly rows="6" class="success-border"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>Semantic Steganography Platform &copy; 2026 | Powered by WordNet & AES-128 Cryptography</p>
+        </footer>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
